@@ -1,12 +1,13 @@
-# app.py
-
 import streamlit as st
-from supabase_client import supabase
+from supabase_client import get_supabase_client
 from utils.data_handler import insert_data, fetch_data
 from components.form_input import render_form
 from components.transaction_table import render_transaction_table
 from components.financial_analysis import render_financial_analysis
 from components.calendar_view import render_calendar_view
+
+# Inisialisasi Supabase client
+supabase = get_supabase_client()
 
 # Setup halaman
 st.set_page_config(page_title="Finance Tracker", layout="wide")
