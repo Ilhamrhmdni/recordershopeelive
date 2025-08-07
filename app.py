@@ -79,7 +79,7 @@ def render_calendar_view(df):
 
 # --- KONFIGURASI LAYOUT ---
 st.set_page_config(page_title="Finance Tracker", layout="wide")
-st.title("💰 Finance Tracker App")
+st.title("💰 Catatan Keuangan")
 
 # --- SIDEBAR ---
 with st.sidebar:
