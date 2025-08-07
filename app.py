@@ -1,45 +1,51 @@
 import streamlit as st
-import subprocess
-import datetime
-from pathlib import Path
+from database import insert_journal, fetch_all_journals
+from datetime import date, time
 
-st.set_page_config(page_title="Shopee Live Recorder", layout="centered")
-st.title("📺 Shopee Live Multi Link Recorder")
+st.set_page_config(page_title="Jurnal Trading", layout="centered")
+st.title("📒 Jurnal Trading Ilham")
 
-# Folder output video
-output_dir = Path("output")
-output_dir.mkdir(exist_ok=True)
+menu = st.sidebar.radio("Menu", ["Input Jurnal", "Lihat Jurnal"])
 
-# Input link Shopee Live
-st.subheader("🔗 Masukkan Link Shopee Live (.flv)")
-link_input = st.text_area("Pisahkan setiap link dengan baris baru")
-duration = st.text_input("⏱️ Durasi Rekaman (format HH:MM:SS)", value="00:05:00")
+if menu == "Input Jurnal":
+    with st.form("jurnal_form"):
+        pair = st.text_input("Pair (contoh: XAU/USD)")
+        timeframe = st.selectbox("Timeframe", ["5M", "15M", "30M", "1H", "4H", "1D"])
+        entry_type = st.radio("Tipe Entry", ["BUY", "SELL"])
+        entry_reason = st.text_area("Alasan Entry")
+        result = st.radio("Hasil", ["WIN", "LOSS"])
+        entry_price = st.number_input("Entry Price", format="%.2f")
+        exit_price = st.number_input("Exit Price", format="%.2f")
+        sl = st.number_input("Stop Loss", format="%.2f")
+        tp = st.number_input("Take Profit", format="%.2f")
+        tanggal = st.date_input("Tanggal", value=date.today())
+        waktu = st.time_input("Waktu", value=time())
 
-if st.button("🎬 Mulai Rekam"):
-    links = [line.strip() for line in link_input.splitlines() if line.strip()]
-    if not links:
-        st.warning("⚠️ Masukkan setidaknya satu link Shopee Live.")
+        submitted = st.form_submit_button("Simpan Jurnal")
+        if submitted:
+            profit_loss = round(exit_price - entry_price, 2) if entry_type == "BUY" else round(entry_price - exit_price, 2)
+
+            data = {
+                "pair": pair,
+                "timeframe": timeframe,
+                "entry_type": entry_type,
+                "entry_reason": entry_reason,
+                "result": result,
+                "entry_price": entry_price,
+                "exit_price": exit_price,
+                "sl": sl,
+                "tp": tp,
+                "tanggal": str(tanggal),
+                "waktu": str(waktu),
+                "profit_loss": profit_loss
+            }
+
+            insert_journal(data)
+            st.success("✅ Data jurnal berhasil disimpan!")
+
+elif menu == "Lihat Jurnal":
+    journals = fetch_all_journals()
+    if journals:
+        st.dataframe(journals)
     else:
-        st.info(f"Memulai rekaman {len(links)} video live...")
-        for i, url in enumerate(links):
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"shopee_live_{i+1}_{timestamp}.mp4"
-            filepath = output_dir / filename
-
-            command = [
-                "ffmpeg", "-y",
-                "-i", url,
-                "-c", "copy",
-                "-t", duration,
-                str(filepath)
-            ]
-
-            with st.status(f"⏺️ Merekam link ke-{i+1}..."):
-                result = subprocess.run(command, capture_output=True, text=True)
-                if result.returncode == 0:
-                    st.success(f"✅ Selesai: {filename}")
-                    with open(filepath, "rb") as f:
-                        st.download_button(f"📥 Download {filename}", f, file_name=filename)
-                else:
-                    st.error(f"❌ Gagal merekam link ke-{i+1}")
-                    st.code(result.stderr, language="bash")
+        st.warning("Belum ada data jurnal yang tersimpan.")
