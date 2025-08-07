@@ -27,8 +27,7 @@ def render_form():
     with st.form("form_transaksi"):
         tanggal = st.date_input("Tanggal", value=datetime.today())
         kategori = st.selectbox("Kategori", ["Pemasukan", "Pengeluaran"])
-        jenis = st.selectbox("Jenis", ["Gaji", "Makan", "Transportasi", "Lainnya"])
-        keterangan = st.text_input("Keterangan")
+        deskripsi = st.text_input("Deskripsi")
         jumlah = st.number_input("Jumlah", min_value=0.0, format="%.2f")
         metode = st.selectbox("Metode Pembayaran", ["Cash", "Transfer", "E-Wallet"])
         submitted = st.form_submit_button("Simpan")
@@ -37,11 +36,9 @@ def render_form():
             return {
                 "tanggal": tanggal.isoformat(),
                 "kategori": kategori,
-                "jenis": jenis,
-                "keterangan": keterangan,
+                "deskripsi": deskripsi,
                 "jumlah": jumlah,
-                "metode": metode,
-                "created_at": datetime.now().isoformat()
+                "metode": metode
             }
     return None
 
@@ -49,9 +46,9 @@ def render_form():
 def render_transaction_table(df):
     st.dataframe(df, use_container_width=True)
     with st.expander("🗑️ Hapus Transaksi"):
-        selected_id = st.text_input("ID Transaksi yang ingin dihapus (UUID)")
+        selected_id = st.number_input("ID Transaksi yang ingin dihapus", min_value=1, step=1)
         if st.button("Hapus"):
-            delete_transaksi(selected_id)
+            delete_transaksi(int(selected_id))
             st.success("Transaksi berhasil dihapus.")
 
 # --- Analisis Keuangan ---
@@ -65,7 +62,7 @@ def render_financial_analysis(df):
     col2.metric("Total Pengeluaran", f"Rp {total_pengeluaran:,.2f}")
     col3.metric("Saldo Akhir", f"Rp {saldo_akhir:,.2f}")
 
-    st.subheader("Grafik Kategori")
+    st.subheader("📊 Grafik Kategori")
     chart_data = df.groupby("kategori")["jumlah"].sum().reset_index()
     st.bar_chart(chart_data, x="kategori", y="jumlah")
 
@@ -80,20 +77,33 @@ def render_calendar_view(df):
 
     st.dataframe(df_grouped, use_container_width=True)
 
-# --- LAYOUT UTAMA ---
+# --- KONFIGURASI LAYOUT ---
 st.set_page_config(page_title="Finance Tracker", layout="wide")
 st.title("💰 Finance Tracker App")
 
-menu = st.sidebar.radio("Navigasi", ["Form Input", "Tabel Transaksi", "Analisis Keuangan", "Kalender Transaksi"])
+# --- SIDEBAR ---
+with st.sidebar:
+    st.markdown("## 💼 Finance Tracker")
+    st.markdown("Versi 1.0.0")
+    st.markdown("---")
+    menu = st.radio("📌 Navigasi", [
+        "📥 Form Input", 
+        "📋 Tabel Transaksi", 
+        "📊 Analisis Keuangan", 
+        "🗓️ Kalender Transaksi"
+    ])
+    st.markdown("---")
+    st.markdown("Built by Ilham ❤️", unsafe_allow_html=True)
 
-if menu == "Form Input":
+# --- RENDER HALAMAN SESUAI MENU ---
+if menu == "📥 Form Input":
     st.subheader("📝 Tambah Transaksi")
     data = render_form()
     if data:
         insert_transaksi(data)
         st.success("Transaksi berhasil disimpan!")
 
-elif menu == "Tabel Transaksi":
+elif menu == "📋 Tabel Transaksi":
     st.subheader("📋 Riwayat Transaksi")
     df = pd.DataFrame(get_all_transaksi())
     if df.empty:
@@ -101,7 +111,7 @@ elif menu == "Tabel Transaksi":
     else:
         render_transaction_table(df)
 
-elif menu == "Analisis Keuangan":
+elif menu == "📊 Analisis Keuangan":
     st.subheader("📊 Analisis Keuangan")
     df = pd.DataFrame(get_all_transaksi())
     if df.empty:
@@ -109,7 +119,7 @@ elif menu == "Analisis Keuangan":
     else:
         render_financial_analysis(df)
 
-elif menu == "Kalender Transaksi":
+elif menu == "🗓️ Kalender Transaksi":
     st.subheader("📅 Kalender Transaksi")
     df = pd.DataFrame(get_all_transaksi())
     if df.empty:
