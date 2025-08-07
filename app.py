@@ -1,5 +1,3 @@
-# app.py
-
 import streamlit as st
 from supabase import create_client
 from datetime import datetime
@@ -29,7 +27,8 @@ def render_form():
     with st.form("form_transaksi"):
         tanggal = st.date_input("Tanggal", value=datetime.today())
         kategori = st.selectbox("Kategori", ["Pemasukan", "Pengeluaran"])
-        deskripsi = st.text_input("Deskripsi")
+        jenis = st.selectbox("Jenis", ["Gaji", "Makan", "Transportasi", "Lainnya"])
+        keterangan = st.text_input("Keterangan")
         jumlah = st.number_input("Jumlah", min_value=0.0, format="%.2f")
         metode = st.selectbox("Metode Pembayaran", ["Cash", "Transfer", "E-Wallet"])
         submitted = st.form_submit_button("Simpan")
@@ -38,9 +37,11 @@ def render_form():
             return {
                 "tanggal": tanggal.isoformat(),
                 "kategori": kategori,
-                "deskripsi": deskripsi,
+                "jenis": jenis,
+                "keterangan": keterangan,
                 "jumlah": jumlah,
-                "metode": metode
+                "metode": metode,
+                "created_at": datetime.now().isoformat()
             }
     return None
 
@@ -48,9 +49,9 @@ def render_form():
 def render_transaction_table(df):
     st.dataframe(df, use_container_width=True)
     with st.expander("🗑️ Hapus Transaksi"):
-        selected_id = st.number_input("ID Transaksi yang ingin dihapus", min_value=1, step=1)
+        selected_id = st.text_input("ID Transaksi yang ingin dihapus (UUID)")
         if st.button("Hapus"):
-            delete_transaksi(int(selected_id))
+            delete_transaksi(selected_id)
             st.success("Transaksi berhasil dihapus.")
 
 # --- Analisis Keuangan ---
