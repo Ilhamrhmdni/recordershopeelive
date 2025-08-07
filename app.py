@@ -62,9 +62,13 @@ def render_financial_analysis(df):
     col2.metric("Total Pengeluaran", f"Rp {total_pengeluaran:,.2f}")
     col3.metric("Saldo Akhir", f"Rp {saldo_akhir:,.2f}")
 
-    st.subheader("📊 Grafik Kategori")
-    chart_data = df.groupby("kategori")["jumlah"].sum().reset_index()
-    st.bar_chart(chart_data, x="kategori", y="jumlah")
+    st.subheader("📊 Grafik Berdasarkan Kategori")
+    kategori_chart = df.groupby("kategori")["jumlah"].sum().reset_index()
+    st.bar_chart(kategori_chart, x="kategori", y="jumlah")
+
+    st.subheader("📌 Grafik Berdasarkan Deskripsi")
+    deskripsi_chart = df.groupby("deskripsi")["jumlah"].sum().reset_index().sort_values(by="jumlah", ascending=False)
+    st.bar_chart(deskripsi_chart, x="deskripsi", y="jumlah")
 
 # --- Kalender Transaksi ---
 def render_calendar_view(df):
@@ -74,36 +78,42 @@ def render_calendar_view(df):
         "jumlah": "sum",
         "kategori": lambda x: ', '.join(set(x))
     }).reset_index()
-
     st.dataframe(df_grouped, use_container_width=True)
 
 # --- KONFIGURASI LAYOUT ---
 st.set_page_config(page_title="Finance Tracker", layout="wide")
-st.title("💰 Finance Tracker App")
+st.title("💰 Finance Tracker")
 
-# --- SIDEBAR ---
+# --- SIDEBAR RAPIH ---
 with st.sidebar:
-    st.markdown("## 💼 Finance Tracker")
-    st.markdown("Versi 1.0.0")
-    st.markdown("---")
-    menu = st.radio("📌 Navigasi", [
-        "📥 Form Input", 
-        "📋 Tabel Transaksi", 
-        "📊 Analisis Keuangan", 
+    st.title("📘 Finance Menu")
+    menu = st.radio("📂 Navigasi", [
+        "🏠 Home",
+        "➕ Tambah Transaksi",
+        "📄 Tabel Transaksi",
+        "📊 Analisis Keuangan",
         "🗓️ Kalender Transaksi"
     ])
     st.markdown("---")
-    st.markdown("Built by Ilham ❤️", unsafe_allow_html=True)
+    st.caption("🔧 Dibuat oleh Ilham ❤️")
 
-# --- RENDER HALAMAN SESUAI MENU ---
-if menu == "📥 Form Input":
+# --- RENDER KONTEN BERDASARKAN MENU ---
+if menu == "🏠 Home":
+    st.image("https://i.imgur.com/BXzG7j1.png", width=400)
+    st.subheader("Selamat Datang di Aplikasi Finance Tracker 👋")
+    st.write("""
+    Aplikasi ini membantu kamu mencatat, memantau, dan menganalisis keuangan pribadi secara sederhana.
+    Mulai dari pemasukan, pengeluaran, grafik keuangan, hingga laporan per tanggal.
+    """)
+
+elif menu == "➕ Tambah Transaksi":
     st.subheader("📝 Tambah Transaksi")
     data = render_form()
     if data:
         insert_transaksi(data)
-        st.success("Transaksi berhasil disimpan!")
+        st.success("✅ Transaksi berhasil disimpan!")
 
-elif menu == "📋 Tabel Transaksi":
+elif menu == "📄 Tabel Transaksi":
     st.subheader("📋 Riwayat Transaksi")
     df = pd.DataFrame(get_all_transaksi())
     if df.empty:
@@ -112,7 +122,7 @@ elif menu == "📋 Tabel Transaksi":
         render_transaction_table(df)
 
 elif menu == "📊 Analisis Keuangan":
-    st.subheader("📊 Analisis Keuangan")
+    st.subheader("📈 Analisis Keuangan")
     df = pd.DataFrame(get_all_transaksi())
     if df.empty:
         st.info("Belum ada data untuk dianalisis.")
