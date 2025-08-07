@@ -98,7 +98,7 @@ with st.sidebar:
     st.caption("🔧 Dibuat oleh Ilham")
 
 # --- RENDER KONTEN BERDASARKAN MENU ---
-if menu == "🏠 Home":
+if menu == "Home":
     st.image("https://i.imgur.com/BXzG7j1.png", width=400)
     st.subheader("Selamat Datang di Aplikasi Finance Tracker 👋")
     st.write("""
@@ -106,14 +106,14 @@ if menu == "🏠 Home":
     Mulai dari pemasukan, pengeluaran, grafik keuangan, hingga laporan per tanggal.
     """)
 
-elif menu == "➕ Tambah Transaksi":
+elif menu == "Tambah Transaksi":
     st.subheader("📝 Tambah Transaksi")
     data = render_form()
     if data:
         insert_transaksi(data)
         st.success("✅ Transaksi berhasil disimpan!")
 
-elif menu == "📄 Tabel Transaksi":
+elif menu == "Tabel Transaksi":
     st.subheader("📋 Riwayat Transaksi")
     df = pd.DataFrame(get_all_transaksi())
     if df.empty:
@@ -121,7 +121,7 @@ elif menu == "📄 Tabel Transaksi":
     else:
         render_transaction_table(df)
 
-elif menu == "📊 Analisis Keuangan":
+elif menu == "Analisis Keuangan":
     st.subheader("📈 Analisis Keuangan")
     df = pd.DataFrame(get_all_transaksi())
     if df.empty:
@@ -129,7 +129,7 @@ elif menu == "📊 Analisis Keuangan":
     else:
         render_financial_analysis(df)
 
-elif menu == "🗓️ Kalender Transaksi":
+elif menu == "Kalender Transaksi":
     st.subheader("📅 Kalender Transaksi")
     df = pd.DataFrame(get_all_transaksi())
     if df.empty:
