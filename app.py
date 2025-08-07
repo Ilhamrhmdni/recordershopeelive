@@ -88,14 +88,14 @@ st.title("💰 Finance Tracker")
 with st.sidebar:
     st.title("📘 Finance Menu")
     menu = st.radio("📂 Navigasi", [
-        "🏠 Home",
-        "➕ Tambah Transaksi",
-        "📄 Tabel Transaksi",
-        "📊 Analisis Keuangan",
-        "🗓️ Kalender Transaksi"
+        "Home",
+        "Tambah Transaksi",
+        "Tabel Transaksi",
+        "Analisis Keuangan",
+        "Kalender Transaksi"
     ])
     st.markdown("---")
-    st.caption("🔧 Dibuat oleh Ilham ❤️")
+    st.caption("🔧 Dibuat oleh Ilham")
 
 # --- RENDER KONTEN BERDASARKAN MENU ---
 if menu == "🏠 Home":
