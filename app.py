@@ -1,120 +1,128 @@
 import streamlit as st
-from supabase import create_client, Client
+from supabase import create_client
 from datetime import datetime
 import pandas as pd
 
-# Konfigurasi Supabase
-url = "https://nwsjgtrzyrebdaioczhj.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53c2pndHJ6eXJlYmRhaW9jemhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NjM4ODgsImV4cCI6MjA3MDEzOTg4OH0.jxmfTFHp7vSwkzE5dVgw7-WKdgKUTxIsysaeA9DRSCw"
-supabase: Client = create_client(url, key)
+# --- KONFIGURASI SUPABASE ---
+SUPABASE_URL = "https://nwsjgtrzyrebdaioczhj.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53c2pndHJ6eXJlYmRhaW9jemhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NjM4ODgsImV4cCI6MjA3MDEzOTg4OH0.jxmfTFHp7vSwkzE5dVgw7-WKdgKUTxIsysaeA9DRSCw"
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+TABLE_NAME = "keuangan"
 
-# Fungsi validasi
-def semua_wajib_diisi(tanggal, kategori, jenis, metode, jumlah):
-    return all([tanggal, kategori, jenis, metode, jumlah > 0])
+# --- FUNGSI CRUD ---
+def insert_transaksi(data: dict):
+    return supabase.table(TABLE_NAME).insert(data).execute()
 
-# Fungsi tambah data
+def get_all_transaksi():
+    return supabase.table(TABLE_NAME).select("*").order("tanggal", desc=False).execute().data
 
+def delete_transaksi(row_id: int):
+    return supabase.table(TABLE_NAME).delete().eq("id", row_id).execute()
+
+def update_transaksi(row_id: int, updated_data: dict):
+    return supabase.table(TABLE_NAME).update(updated_data).eq("id", row_id).execute()
+
+# --- UI Form Input ---
 def render_form():
-    st.subheader("📝 Tambah Transaksi")
-
     with st.form("form_transaksi"):
         tanggal = st.date_input("Tanggal", value=datetime.today())
         kategori = st.selectbox("Kategori", ["Pemasukan", "Pengeluaran"])
-        jenis = st.selectbox("Jenis", ["Umum", "Gaji", "Investasi", "Belanja", "Lainnya"])
-        metode = st.selectbox("Metode Pembayaran", ["Cash", "Transfer", "E-Wallet"])
+        deskripsi = st.text_input("Deskripsi")
         jumlah = st.number_input("Jumlah", min_value=0.0, format="%.2f")
-        keterangan = st.text_area("Keterangan")
+        metode = st.selectbox("Metode Pembayaran", ["Cash", "Transfer", "E-Wallet"])
         submitted = st.form_submit_button("Simpan")
 
         if submitted:
-            if not semua_wajib_diisi(tanggal, kategori, jenis, metode, jumlah):
-                st.warning("Mohon lengkapi semua field wajib.")
-                return
-
-            data = {
+            return {
                 "tanggal": tanggal.isoformat(),
                 "kategori": kategori,
-                "jenis": jenis,
-                "metode": metode,
+                "deskripsi": deskripsi,
                 "jumlah": jumlah,
-                "keterangan": keterangan
+                "metode": metode
             }
+    return None
 
-            response = supabase.table("keuangan").insert(data).execute()
+# --- Tabel Transaksi ---
+def render_transaction_table(df):
+    st.dataframe(df, use_container_width=True)
+    with st.expander("🗑️ Hapus Transaksi"):
+        selected_id = st.number_input("ID Transaksi yang ingin dihapus", min_value=1, step=1)
+        if st.button("Hapus"):
+            delete_transaksi(int(selected_id))
+            st.success("Transaksi berhasil dihapus.")
 
-            if response.error:
-                st.error(f"Terjadi kesalahan: {response.error.message}")
-            else:
-                st.success("Transaksi berhasil disimpan!")
+# --- Analisis Keuangan ---
+def render_financial_analysis(df):
+    total_pemasukan = df[df['kategori'] == 'Pemasukan']['jumlah'].sum()
+    total_pengeluaran = df[df['kategori'] == 'Pengeluaran']['jumlah'].sum()
+    saldo_akhir = total_pemasukan - total_pengeluaran
 
-# Fungsi edit data
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Pemasukan", f"Rp {total_pemasukan:,.2f}")
+    col2.metric("Total Pengeluaran", f"Rp {total_pengeluaran:,.2f}")
+    col3.metric("Saldo Akhir", f"Rp {saldo_akhir:,.2f}")
 
-def render_edit_form(row):
-    st.subheader("✏️ Edit Transaksi")
+    st.subheader("📊 Grafik Kategori")
+    chart_data = df.groupby("kategori")["jumlah"].sum().reset_index()
+    st.bar_chart(chart_data, x="kategori", y="jumlah")
 
-    with st.form(f"edit_form_{row['id']}"):
-        tanggal = st.date_input("Tanggal", datetime.fromisoformat(row['tanggal']))
-        kategori = st.selectbox("Kategori", ["Pemasukan", "Pengeluaran"], index=0 if row['kategori'] == "Pemasukan" else 1)
-        jenis = st.selectbox("Jenis", ["Umum", "Gaji", "Investasi", "Belanja", "Lainnya"], index=["Umum", "Gaji", "Investasi", "Belanja", "Lainnya"].index(row['jenis']))
-        metode = st.selectbox("Metode Pembayaran", ["Cash", "Transfer", "E-Wallet"], index=["Cash", "Transfer", "E-Wallet"].index(row['metode']))
-        jumlah = st.number_input("Jumlah", min_value=0.0, format="%.2f", value=float(row['jumlah']))
-        keterangan = st.text_area("Keterangan", value=row['keterangan'])
-        update_btn = st.form_submit_button("Update")
+# --- Kalender Transaksi ---
+def render_calendar_view(df):
+    df['tanggal'] = pd.to_datetime(df['tanggal'])
+    df['tanggal_str'] = df['tanggal'].dt.strftime('%Y-%m-%d')
+    df_grouped = df.groupby("tanggal_str").agg({
+        "jumlah": "sum",
+        "kategori": lambda x: ', '.join(set(x))
+    }).reset_index()
 
-        if update_btn:
-            if not semua_wajib_diisi(tanggal, kategori, jenis, metode, jumlah):
-                st.warning("Mohon lengkapi semua field wajib.")
-                return
+    st.dataframe(df_grouped, use_container_width=True)
 
-            updated_data = {
-                "tanggal": tanggal.isoformat(),
-                "kategori": kategori,
-                "jenis": jenis,
-                "metode": metode,
-                "jumlah": jumlah,
-                "keterangan": keterangan
-            }
-
-            response = supabase.table("keuangan").update(updated_data).eq("id", row["id"]).execute()
-
-            if response.error:
-                st.error(f"Gagal update: {response.error.message}")
-            else:
-                st.success("Data berhasil diperbarui.")
-
-# Tampilan utama
-
+# --- KONFIGURASI LAYOUT ---
 st.set_page_config(page_title="Finance Tracker", layout="wide")
 st.title("💰 Finance Tracker App")
 
-menu = st.sidebar.radio("📌 Navigasi", [
-    "📥 Form Input", 
-    "📋 Tabel Transaksi"
-])
+# --- SIDEBAR ---
+with st.sidebar:
+    st.markdown("## 💼 Finance Tracker")
+    st.markdown("Versi 1.0.0")
+    st.markdown("---")
+    menu = st.radio("📌 Navigasi", [
+        "📥 Form Input", 
+        "📋 Tabel Transaksi", 
+        "📊 Analisis Keuangan", 
+        "🗓️ Kalender Transaksi"
+    ])
+    st.markdown("---")
+    st.markdown("Built by Ilham ❤️", unsafe_allow_html=True)
 
+# --- RENDER HALAMAN SESUAI MENU ---
 if menu == "📥 Form Input":
-    render_form()
+    st.subheader("📝 Tambah Transaksi")
+    data = render_form()
+    if data:
+        insert_transaksi(data)
+        st.success("Transaksi berhasil disimpan!")
 
 elif menu == "📋 Tabel Transaksi":
     st.subheader("📋 Riwayat Transaksi")
-    response = supabase.table("keuangan").select("*").order("tanggal", desc=True).execute()
-
-    if response.error:
-        st.error("Gagal mengambil data.")
+    df = pd.DataFrame(get_all_transaksi())
+    if df.empty:
+        st.info("Belum ada data transaksi.")
     else:
-        data = response.data
-        if not data:
-            st.info("Belum ada data transaksi.")
-        else:
-            df = pd.DataFrame(data)
-            st.dataframe(df, use_container_width=True)
+        render_transaction_table(df)
 
-            for row in data:
-                with st.expander(f"{row['tanggal']} - {row['kategori']} - Rp{row['jumlah']:,.2f}"):
-                    st.write(f"**Jenis:** {row['jenis']}")
-                    st.write(f"**Metode:** {row['metode']}")
-                    st.write(f"**Jumlah:** Rp{row['jumlah']:,.2f}")
-                    st.write(f"**Keterangan:** {row['keterangan']}")
+elif menu == "📊 Analisis Keuangan":
+    st.subheader("📊 Analisis Keuangan")
+    df = pd.DataFrame(get_all_transaksi())
+    if df.empty:
+        st.info("Belum ada data untuk dianalisis.")
+    else:
+        render_financial_analysis(df)
 
-                    if st.button("Edit", key=f"edit_{row['id']}"):
-                        render_edit_form(row)
+elif menu == "🗓️ Kalender Transaksi":
+    st.subheader("📅 Kalender Transaksi")
+    df = pd.DataFrame(get_all_transaksi())
+    if df.empty:
+        st.info("Belum ada data transaksi.")
+    else:
+        render_calendar_view(df)
