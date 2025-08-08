@@ -12,7 +12,7 @@ PROFILE_TABLE = "profiles"
 
 # --- BUAT ADMIN OTOMATIS JIKA BELUM ADA ---
 def create_admin_if_not_exists():
-    email = "administrator@example.com"
+    email = "ilhamrahmaddani550@gmail.com"
     password = "akukaya"
     # Cek apakah sudah ada user admin
     existing = supabase.table(PROFILE_TABLE).select("*").eq("email", email).execute().data
